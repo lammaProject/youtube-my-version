@@ -31,7 +31,6 @@ const DashboardPage = ({ dontLoad = false, API, queryKey }: IDashboardPage) => {
     if (!isPending) {
       setLoad(false);
       storeSetHeaderSearchLoader(false);
-      console.log(data);
     }
   }, [isFetching]);
 

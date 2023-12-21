@@ -15,12 +15,12 @@ const Search = () => {
     );
 
   return (
-    <>
+    <section>
       <DashboardPage
         API={`search?part=snippet&order=rating&maxResults=25&q=${storeSearchValue}`}
         queryKey={"search"}
       />
-    </>
+    </section>
   );
 };
 

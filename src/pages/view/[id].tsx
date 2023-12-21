@@ -1,10 +1,15 @@
 import YouTube from "react-youtube";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Loader from "@/components/Loader";
 import moment from "moment";
 import axios from "axios";
 import { GetServerSideProps } from "next";
 import ErrorDesc from "@/components/ErrorDesc";
+import { IComment, IFetchView, IRecommend } from "@/pages/view/interface";
+import { usePosts } from "@/hooks/useServices";
+import { InView } from "react-intersection-observer";
+import Comment from "@/components/Comment";
+import RecommendVideo from "@/components/RecommendVideo";
 
 export const IconSub = () => (
   <svg
@@ -31,7 +36,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       data: {
         items: [
           {
-            snippet: { categoryId, channelId },
+            snippet: { channelId },
           },
         ],
         items: [videoItem],
@@ -41,43 +46,79 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     );
 
     const getChannel = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet%2CcontentDetails%2Cstatistics&id=${channelId}&key=${process.env.NEXT_PUBLIC_API_KEY}`;
-    const getReccomend = `https://youtube.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&type=video&videoCategoryId=${categoryId}&regionCode=US&key=${process.env.NEXT_PUBLIC_API_KEY}`;
-    //const getComments = `https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet%2Creplies&videoId=${id}&key=${process.env.NEXT_PUBLIC_API_KEY}`;
 
-    const [
-      {
+    const {
+      data: {
         items: [channelData],
       },
-      { items: recommendData },
-    ] = await Promise.all([
-      fetch(getChannel).then((res) => res.json()),
-      fetch(getReccomend).then((res) => res.json()),
-    ]);
+    } = await axios.get(getChannel);
 
-    return { props: { videoItem, channelData, recommendData } };
+    return { props: { videoItem, channelData } };
   } catch (error) {
     console.log(error);
-    return { props: { videoItem: [], channelData: [], recommendData: [] } };
+    return {
+      props: {
+        videoItem: [],
+        channelData: [],
+        recommendData: [],
+        commentsData: [],
+      },
+    };
   }
 };
-const View = ({ videoItem, channelData, recommendData }) => {
-  const [load, setLoad] = useState(true);
+const View = ({ videoItem, channelData }: IFetchView) => {
+  const [load, setLoad] = useState({
+    video: true,
+    comment: true,
+    recommend: true,
+  });
   const [closeDesc, setCloseDesc] = useState(true);
+  const [commentOrder, setCommentOrder] = useState<"relevance" | "time">(
+    "relevance",
+  );
 
-  if (!videoItem?.length || !channelData?.length || !recommendData?.length)
+  if (!videoItem || !channelData)
     return (
       <div className={"text-white mt-24 px-10"}>
         <ErrorDesc />
       </div>
     );
 
+  const {
+    data: commentsData,
+    fetchNextPage: fetchNextPageComment,
+    refetch,
+  } = usePosts(
+    `commentThreads?part=snippet%2Creplies&order=${commentOrder}&videoId=${videoItem.id}`,
+    `comments ${commentOrder}`,
+  );
+
+  const { data: recommendData, fetchNextPage: fetchNextPageRec } = usePosts(
+    `search?part=snippet&maxResults=25&type=video&videoCategoryId=${videoItem.snippet.categoryId}`,
+    "recommend",
+  );
+
+  useEffect(() => {
+    if (commentsData) {
+      setLoad((prev) => ({ ...prev, recommend: false }));
+    }
+
+    if (recommendData) {
+      setLoad((prev) => ({ ...prev, recommend: false }));
+    }
+  }, [commentsData, recommendData]);
+
+  useEffect(() => {
+    void refetch();
+  }, [commentOrder]);
+
   return (
     <div className={"p-10 mt-24"}>
-      {load && <Loader />}
+      {load.video && <Loader />}
 
       <YouTube
         title={"TITLE"}
-        onReady={() => setLoad(false)}
+        onReady={() => setLoad((prev) => ({ ...prev, video: false }))}
         loading={"lazy"}
         opts={{
           height: "500px",
@@ -131,50 +172,105 @@ const View = ({ videoItem, channelData, recommendData }) => {
 
           <div className={"flex flex-col"}>
             <p className={"mt-10 text-2xl"}>
-              {videoItem.statistics.commentCount} comment
+              {videoItem.statistics.commentCount} комментариев
             </p>
 
-            <div className={"flex mt-2"}>
+            <div className={"flex mt-2 items-center"}>
               <div
                 className={"rounded-[100px] mr-3 bg-gray-600 w-[30px] h-[30px]"}
               ></div>
-              <input className={"flex-grow text-white border-b-white"} />
+              <input
+                className={"flex-grow p-3 text-black border-b-white bg-white"}
+              />
+            </div>
+
+            <div className={"mt-5 flex items-center"}>
+              <h1
+                onClick={() => setCommentOrder("relevance")}
+                className={`${
+                  commentOrder === "relevance"
+                    ? "opacity-100 "
+                    : "opacity-50 text-white"
+                } text-[#ff0000] mr-3 cursor-pointer hover:opacity-100 hover:text-[#ff0000] transition-all`}
+              >
+                Популярные
+              </h1>
+              <h1
+                onClick={() => setCommentOrder("time")}
+                className={`${
+                  commentOrder === "time"
+                    ? "opacity-100"
+                    : "opacity-50 text-white"
+                } text-[#ff0000] mr-3 cursor-pointer hover:opacity-100 hover:text-[#ff0000] transition-all`}
+              >
+                Новые
+              </h1>
+            </div>
+            <div className={"flex flex-col"}>
+              {commentsData &&
+                commentsData.pages.map((group) => (
+                  <>
+                    {group.items.map((item: IComment) => (
+                      <Comment item={item} />
+                    ))}
+                  </>
+                ))}
+
+              {load.comment && (
+                <div className={"flex w-[320px]"}>
+                  <Loader />
+                </div>
+              )}
+
+              <InView
+                as={"div"}
+                className={
+                  "left-10 -right-1 h-[10px] animate-bounce transition-all animate-changeColorBg"
+                }
+                onChange={(inView) => {
+                  if (inView) {
+                    if (commentsData) {
+                      setLoad((prev) => ({ ...prev, comment: true }));
+                      fetchNextPageComment();
+                    }
+                  }
+                }}
+              ></InView>
             </div>
           </div>
         </div>
 
         {/*right side*/}
         <div className={"col-span-1 p-2"}>
-          {recommendData?.length &&
-            recommendData.map(({ snippet }) => (
-              <div
-                className={
-                  "grid grid-cols-3 gap-1 mb-5 cursor-pointer hover:scale-110 group hover:bg-white hover:text-black"
-                }
-              >
-                <img
-                  alt={""}
-                  className={"col-span-2 w-[100%]"}
-                  src={snippet.thumbnails.medium.url}
-                />
-
-                <div className={"flex justify-between flex-col"}>
-                  <div>
-                    <p className={"text-[18px]"}>
-                      {snippet.title.length > 30
-                        ? snippet.title.slice(0, 30) + "..."
-                        : snippet.title}
-                    </p>
-                    <p className={"text-[#ff0000] text-[14px]"}>
-                      {snippet.channelTitle.length > 30
-                        ? snippet.channelTitle.slice(0, 30) + "..."
-                        : snippet.channelTitle}
-                    </p>
-                  </div>
-                  <p>{moment(snippet.publishedAt).format("DD.MM.YYYY")}</p>
-                </div>
-              </div>
+          {recommendData &&
+            recommendData.pages.map((group) => (
+              <>
+                {group.items.map((item: IRecommend) => (
+                  <RecommendVideo item={item} />
+                ))}
+              </>
             ))}
+
+          {load.recommend && (
+            <div className={"flex w-[320px]"}>
+              <Loader />
+            </div>
+          )}
+
+          <InView
+            as={"div"}
+            className={
+              "left-10 -right-1 h-[10px] animate-bounce transition-all animate-changeColorBg"
+            }
+            onChange={(inView) => {
+              if (inView) {
+                if (commentsData) {
+                  setLoad((prev) => ({ ...prev, recommend: true }));
+                  fetchNextPageRec();
+                }
+              }
+            }}
+          ></InView>
         </div>
       </div>
     </div>

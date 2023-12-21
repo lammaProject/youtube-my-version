@@ -1,10 +1,10 @@
-import { useLayoutEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/router";
 
 const Home = () => {
   const router = useRouter();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     router.push("/dashboard/popular");
   }, [router]);
 
