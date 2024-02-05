@@ -7,7 +7,7 @@ const Search = () => {
   if (!storeSearchValue)
     return (
       <div className={"flex flex-col"}>
-        <DashboardPage dontLoad={true} />
+        {/*<DashboardPage dontLoad={true} />*/}
         <h1 className={"m-auto"}>
           Nothing... You can search use input in top!
         </h1>

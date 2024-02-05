@@ -1,11 +1,14 @@
 import ky from "ky-universal";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { http } from "@/api/http";
 
 const fetchPosts = async (API: string, { pageParam }) => {
-  const parsed: Object = await ky(
-    `https://youtube.googleapis.com/youtube/v3/${API}&pageToken=${pageParam}&regionCode=US&key=${process.env.NEXT_PUBLIC_API_KEY}`,
-  ).json();
-  return { items: parsed.items, nextPageToken: parsed.nextPageToken };
+  const {
+    data: { items, nextPageToken },
+  } = await http.get(
+    `${API}&pageToken=${pageParam}&regionCode=US&key=${process.env.NEXT_PUBLIC_API_KEY}`,
+  );
+  return { items, nextPageToken };
 };
 
 const usePosts = (API: string, queryKey: string) => {

@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NextRouter, useRouter } from "next/router";
 import useStore from "@/store/store";
+import Link from "next/link";
+import axios from "axios";
+import checkToken from "@/utils/checkToken.tsx";
 
 export const Spinner = () => (
   <div role="status">
@@ -174,8 +177,22 @@ const Header = () => {
             />
           )}
         </div>
-        <div>
-          <div className={"rounded-[100px] bg-white w-[40px] h-[40px]"}></div>
+        <div
+          onClick={() => {
+            async function apiGet() {
+              const res = await axios.get("/api/auth");
+              const data = res;
+              if (data.data.Location) {
+                router.push(data.data.Location);
+              }
+            }
+            apiGet();
+          }}
+          // className={
+          //   "cursor-pointer rounded-[100px] bg-white w-[40px] bg-white h-[40px]"
+          // }
+        >
+          ACCOUNT
         </div>
       </div>
     </header>

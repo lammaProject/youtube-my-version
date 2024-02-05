@@ -46,13 +46,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     );
 
     const getChannel = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet%2CcontentDetails%2Cstatistics&id=${channelId}&key=${process.env.NEXT_PUBLIC_API_KEY}`;
-
     const {
       data: {
         items: [channelData],
       },
     } = await axios.get(getChannel);
-
     return { props: { videoItem, channelData } };
   } catch (error) {
     console.log(error);

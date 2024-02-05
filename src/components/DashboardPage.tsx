@@ -6,6 +6,7 @@ import { usePosts } from "@/hooks/useServices";
 import useStore from "@/store/store";
 import NavDashboard from "@/components/NavDashboard";
 import ErrorDesc from "@/components/ErrorDesc";
+import { router } from "next/client";
 
 interface IDashboardPage {
   dontLoad?: boolean;
@@ -16,12 +17,26 @@ interface IDashboardPage {
 const DashboardPage = ({ dontLoad = false, API, queryKey }: IDashboardPage) => {
   const [load, setLoad] = useState(true);
 
+  // const watchError = useStore((store) => store.errorWatch);
   const storeSetHeaderSearchLoader = useStore(
     (store) => store.setHeaderSearchLoader,
   );
 
-  const { data, isPending, refetch, error, fetchNextPage, isFetching } =
-    usePosts(API || "", queryKey || "");
+  const {
+    data,
+    isPending,
+    refetch,
+    error,
+    fetchNextPage,
+    isFetching,
+    isError,
+  } = usePosts(API || "", queryKey || "");
+
+  // useEffect(() => {
+  //   if (watchError === "401") {
+  //     router.replace("/auth");
+  //   }
+  // }, [watchError]);
 
   useEffect(() => {
     void refetch();
@@ -45,9 +60,9 @@ const DashboardPage = ({ dontLoad = false, API, queryKey }: IDashboardPage) => {
           {!dontLoad && (
             <div className={"grid mt-5 grid-cols-5 gap-5"}>
               {data &&
-                data.pages.map((group) => (
+                data?.pages.map((group) => (
                   <>
-                    {group.items.map((item: IVideoCard) => (
+                    {group?.items?.map((item: IVideoCard) => (
                       <VideoCard item={item} />
                     ))}
                   </>

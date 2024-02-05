@@ -11,6 +11,8 @@ export interface IUseStore {
   setSearchValue: (searchValue: string) => void;
   headerSearchLoader: boolean;
   setHeaderSearchLoader: (headerSearchLoader: boolean) => void;
+  errorWatch: string;
+  setErrorWatch: (errorWatch: string) => void;
 }
 
 const useStore = create<IUseStore>((set) => ({
@@ -26,6 +28,9 @@ const useStore = create<IUseStore>((set) => ({
   headerSearchLoader: false,
   setHeaderSearchLoader: (headerSearchLoader) =>
     set(() => ({ headerSearchLoader: headerSearchLoader })),
+  errorWatch: "",
+  setErrorWatch: (errorWatch: string) =>
+    set(() => ({ errorWatch: errorWatch })),
 }));
 
 export default useStore;
